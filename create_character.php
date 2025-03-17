@@ -44,21 +44,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Insert character into database
     try {
-        $stmt = $pdo->prepare("INSERT INTO characters (user_id, name, background, status) VALUES (?, ?, ?, 'pending')");
-        $stmt->execute([$user_id, $name, $background]);
+    $stmt = $pdo->prepare("INSERT INTO characters (user_id, name, background, status) VALUES (?, ?, ?, 'pending')");
+    $stmt->execute([$user_id, $name, $background]);
 
-        // Clear any existing error messages
-        unset($_SESSION['error_message']);
-        
-        $_SESSION['success_message'] = 'Veikėjas sukurtas! Jūsų prašymas bus peržiūrėtas administracijos.';
-        header("Location: jusu_veikejai.php"); // Redirect to character list page
-        exit;
-    } catch (PDOException $e) {
-        // Handle the exception and display error message
-        $_SESSION['error_message'] = 'Klaida: ' . $e->getMessage();
-        header("Location: create_character.php"); // Redirect back to the form
-        exit;
-    }
+    unset($_SESSION['error_message']);
+    
+    $_SESSION['success_message'] = 'Veikėjas sukurtas! Jūsų prašymas bus peržiūrėtas administracijos.';
+    
+    // Redirect to the character list after success
+    header("Location: jusu_veikejai.php"); 
+    exit;
+} catch (PDOException $e) {
+    $_SESSION['error_message'] = 'Klaida: ' . $e->getMessage();
+    header("Location: create_character.php"); 
+    exit;
+}
+
 }
 ?>
 
