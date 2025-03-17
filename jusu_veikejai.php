@@ -11,7 +11,7 @@ if (!isset($_SESSION['username'])) {
 $username = $_SESSION['username'];
 
 // Get user ID from the database using the username
-$stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+$stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
 $stmt->execute([$username]);
 $user = $stmt->fetch();
 
@@ -21,13 +21,18 @@ if (!$user) {
 
 $user_id = $user['id']; // Get the actual user ID
 
-// Fetch characters with status accepted and pending only for the main list
-$stmt = $pdo->prepare("SELECT * FROM characters WHERE user_id = ? AND status IN ('accepted', 'pending')");
-$stmt->execute([$user_id]);
-$characters = $stmt->fetchAll();
+// Fetch characters with accepted status
+$stmt_accepted = $pdo->prepare("SELECT * FROM characters WHERE user_id = ? AND status = 'approved'");
+$stmt_accepted->execute([$user_id]);
+$accepted_characters = $stmt_accepted->fetchAll();
 
-// Fetch declined characters for the new section
-$stmt_declined = $pdo->prepare("SELECT * FROM characters WHERE user_id = ? AND status = 'declined'");
+// Fetch characters with pending status
+$stmt_pending = $pdo->prepare("SELECT * FROM characters WHERE user_id = ? AND status = 'pending'");
+$stmt_pending->execute([$user_id]);
+$pending_characters = $stmt_pending->fetchAll();
+
+// Fetch declined characters
+$stmt_declined = $pdo->prepare("SELECT * FROM characters WHERE user_id = ? AND status = 'rejected'");
 $stmt_declined->execute([$user_id]);
 $declined_characters = $stmt_declined->fetchAll();
 ?>
@@ -77,23 +82,37 @@ $declined_characters = $stmt_declined->fetchAll();
     }
     ?>
 
-    <?php if (empty($characters)): ?>
+    <?php if (empty($accepted_characters) && empty($pending_characters)): ?>
         <div class="alert alert-info text-center">
             Jūs neturite veikėjų.
         </div>
     <?php else: ?>
-        <ul class="list-group mt-3">
-            <?php foreach ($characters as $character): ?>
-                <li class="list-group-item">
-                    <a href="user_stats.php?character_id=<?php echo $character['id']; ?>" class="charListName">
-                        <?php echo htmlspecialchars($character['name']); ?>
-                    </a>
-                    <?php if ($character['status'] === 'pending'): ?>
+        <?php if (!empty($accepted_characters)): ?>
+            <h3>Priimti veikėjai</h3>
+            <ul class="list-group mt-3">
+                <?php foreach ($accepted_characters as $character): ?>
+                    <li class="list-group-item">
+                        <a href="user_stats.php?character_id=<?php echo $character['id']; ?>" class="charListName">
+                            <?php echo htmlspecialchars($character['name']); ?>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+
+        <?php if (!empty($pending_characters)): ?>
+            <h3>Laukiantys patvirtinimo</h3>
+            <ul class="list-group mt-3">
+                <?php foreach ($pending_characters as $character): ?>
+                    <li class="list-group-item">
+                        <a href="user_stats.php?character_id=<?php echo $character['id']; ?>" class="charListName">
+                            <?php echo htmlspecialchars($character['name']); ?>
+                        </a>
                         - Laukiama patvirtinimo
-                    <?php endif; ?>
-                </li>
-            <?php endforeach; ?>
-        </ul>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
     <?php endif; ?>
 
     <!-- Button to toggle declined characters section -->
