@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user && password_verify($password, $user['password'])) {
-        // **Check if email is verified**
-        if ($user['email_verified'] == 0) { // Assuming 0 means not verified
+        // Check if email is verified
+        if ($user['is_confirmed'] == 0) { // Assuming 0 means not verified
             $_SESSION['error_message'] = 'Jūsų el. paštas nėra patvirtintas. Prašome patikrinti savo el. paštą.';
-            header("Location: index.php");
+            header("Location: index.php"); // Redirect back to login page
             exit();
         }
 
@@ -30,11 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['logged_in'] = true;
         $_SESSION['username'] = $user['username'];
 
-        header("Location: dashboard.php");
+        header("Location: dashboard.php"); // Redirect to user dashboard
         exit();
     } else {
+        // Incorrect username or password
         $_SESSION['error_message'] = 'Neteisingas vartotojo vardas arba slaptažodis';
-        header("Location: index.php");
+        header("Location: index.php"); // Redirect back to login page
         exit();
     }
 }

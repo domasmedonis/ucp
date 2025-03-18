@@ -49,13 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     $stmt->execute([$user_id]);
     $user_password = $stmt->fetchColumn();
 
+    // Verify current password
     if (password_verify($current_password, $user_password)) {
+        // Check if new passwords match and meet the minimum length
         if ($new_password === $confirm_password && strlen($new_password) >= 6) {
+            // Hash the new password before updating it
             $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
             $stmt->execute([$hashed_password, $user_id]);
-            $_SESSION['success_message'] = "Slaptažodis sėkmingai pakeistas!";
-            header("Location: settings.php");
+
+            // Log the user out after changing the password
+            session_unset();  // Unset all session variables
+            session_destroy();  // Destroy the session
+            session_start();  // Start a new session
+            
+            $_SESSION['success_message'] = "Slaptažodis sėkmingai pakeistas! Prašome prisijungti su nauju slaptažodžiu.";
+            header("Location: index.php");  // Redirect to the login page
             exit;
         } else {
             $_SESSION['error_message'] = "Nauji slaptažodžiai nesutampa arba yra per trumpi!";
@@ -64,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
         $_SESSION['error_message'] = "Neteisingas dabartinis slaptažodis!";
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -73,55 +83,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     <title>Nustatymai</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .profile-header {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            border-radius: 10px;
+        }
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid white;
+            margin-top: -50px;
+        }
+        .settings-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 <body>
 <?php include 'sidebar.html'; ?>
-<div class="container mt-5">
-    <h2 class="text-center pd50top">Nustatymai</h2>
+<div class="container mt-5 pd25top">
 
     <?php if (isset($_SESSION['error_message'])): ?>
-        <div class="alert alert-danger text-center"> <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?> </div>
+        <div class="alert alert-danger text-center mt-3"> <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?> </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['success_message'])): ?>
-        <div class="alert alert-success text-center"> <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?> </div>
+        <div class="alert alert-success text-center mt-3"> <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?> </div>
     <?php endif; ?>
 
-    <div class="card p-4 mt-4 shadow-lg">
+    <div class="card p-4 mt-4 settings-card">
         <h4 class="text-center">Jūsų paskyros informacija</h4>
         <p><strong>Vartotojo vardas:</strong> <?php echo htmlspecialchars($username); ?></p>
         <p><strong>El. paštas:</strong> <?php echo htmlspecialchars($email); ?></p>
         <p><strong>Registracijos data:</strong> <?php echo htmlspecialchars($created_at); ?></p>
     </div>
 
-    <div class="card p-4 mt-4 shadow-lg">
-        <h4 class="text-center">Keisti el. paštą</h4>
-        <form method="post">
-            <div class="form-group">
-                <label>Naujas el. paštas</label>
-                <input type="email" name="new_email" class="form-control" required>
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card p-4 settings-card">
+                <h4 class="text-center">Keisti el. paštą</h4>
+                <form method="post">
+                    <div class="form-group">
+                        <label>Naujas el. paštas</label>
+                        <input type="email" name="new_email" class="form-control" required>
+                    </div>
+                    <button type="submit" name="change_email" class="btn btn-primary btn-block">Keisti el. paštą</button>
+                </form>
             </div>
-            <button type="submit" name="change_email" class="btn btn-primary btn-block">Keisti el. paštą</button>
-        </form>
-    </div>
-
-    <div class="card p-4 mt-4 shadow-lg">
-        <h4 class="text-center">Keisti slaptažodį</h4>
-        <form method="post">
-            <div class="form-group">
-                <label>Dabartinis slaptažodis</label>
-                <input type="password" name="current_password" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4 settings-card">
+                <h4 class="text-center">Keisti slaptažodį</h4>
+                <form method="post">
+                    <div class="form-group">
+                        <label>Dabartinis slaptažodis</label>
+                        <input type="password" name="current_password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Naujas slaptažodis</label>
+                        <input type="password" name="new_password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pakartokite naują slaptažodį</label>
+                        <input type="password" name="confirm_password" class="form-control" required>
+                    </div>
+                    <button type="submit" name="change_password" class="btn btn-warning btn-block">Keisti slaptažodį</button>
+                </form>
             </div>
-            <div class="form-group">
-                <label>Naujas slaptažodis</label>
-                <input type="password" name="new_password" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>Pakartokite naują slaptažodį</label>
-                <input type="password" name="confirm_password" class="form-control" required>
-            </div>
-            <button type="submit" name="change_password" class="btn btn-warning btn-block">Keisti slaptažodį</button>
-        </form>
+        </div>
     </div>
 </div>
 </body>
